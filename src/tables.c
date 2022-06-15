@@ -42,11 +42,32 @@ void write_symbol(FILE* output, uint32_t addr, const char* name) {
  */
 SymbolTable* create_table(int mode) {
     /* YOUR CODE HERE */
+    SymbolTable* table = (SymbolTable*)malloc(sizeof(SymbolTable));
+    if (!table) {
+      allocation_failed();
+    } else {
+      table->tbl = NULL;
+      table->len = 0;
+      table->cap = 0;
+      table->mode = mode;
+      return table;
+    }
     return NULL;
 }
 
 /* Frees the given SymbolTable and all associated memory. */
 void free_table(SymbolTable* table) {
+    if (table) {
+      if (table->tbl) {
+        for (int i = table->len; i >= 0; --i) {
+          free(table->tbl[i]->name);
+          free(table->tbl[i]);
+        }
+        free(table->tbl);
+      }
+      free(table);
+    }
+    return;
     /* YOUR CODE HERE */
 }
 
@@ -65,8 +86,37 @@ void free_table(SymbolTable* table) {
    Otherwise, you should store the symbol name and address and return 0.
  */
 int add_to_table(SymbolTable* table, const char* name, uint32_t addr) {
+    if (!table) {
+      return -1;
+    }
     /* YOUR CODE HERE */
-    return -1;
+    if (addr % word_size == 0) {
+      addr_alignment_incorrect();
+      return -1;
+    }
+    if (table->mode == SYMTBL_UNIQUE_NAME) {
+      if (get_addr_for_symbol(table, name) == -1) {
+        return -1;
+      }
+    }
+    Symbol* symbol = (Symbol*)malloc(sizeof(Symbol));
+    if (!symbol)  {
+      allocation_failed();
+      return -1;
+    }
+    int slen = strlen(name);
+    symbol->name = (char*)malloc(sizeof(slen+1));
+    strncpy(symbol->name, name, slen+1); // for null termination
+    symbol->addr = addr;
+    table->tbl = (Symbol*)realloc(table->tbl, sizeof(Symbol*)*(table->len + 1));
+    if (!table->tbl) {
+      allocation_failed();
+      return -1;
+    }
+    table->tbl[table->len] = symbol;
+    ++table->len;
+
+    return 0;
 }
 
 /* Returns the address (byte offset) of the given symbol. If a symbol with name
@@ -74,6 +124,11 @@ int add_to_table(SymbolTable* table, const char* name, uint32_t addr) {
  */
 int64_t get_addr_for_symbol(SymbolTable* table, const char* name) {
     /* YOUR CODE HERE */
+    for (int i = 0; i < table->len; ++i) {
+      if (strcmp(table->tbl[i]->name, name) == 0) {
+        return (int64_t)table->tbl[i]->addr;
+      }
+    }
     return -1;   
 }
 
@@ -82,4 +137,7 @@ int64_t get_addr_for_symbol(SymbolTable* table, const char* name) {
  */
 void write_table(SymbolTable* table, FILE* output) {
     /* YOUR CODE HERE */
+    for (int i = 0; i < table->len; ++i) {
+      write_symbol(table, output);
+    }
 }

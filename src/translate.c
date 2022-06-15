@@ -78,10 +78,63 @@ int translate_inst(FILE* output, const char* name, char** args, size_t num_args,
     else if (strcmp(name, "slt") == 0)   return write_rtype (0x2a, output, args, num_args);
     else if (strcmp(name, "sltu") == 0)  return write_rtype (0x2b, output, args, num_args);
     else if (strcmp(name, "sll") == 0)   return write_shift (0x00, output, args, num_args);
+    else if (strcmp(name, "addiu") == 0) return write_itype(0x09, output, args, num_args);
+    else if (strcmp(name, "ori") == 0) return write_itype(0x0D, output, args, num_args);
+    else if (strcmp(name, "lui") == 0) return write_itype_big(0x0F, output, args, num_args);
+    else if (strcmp(name, "lb") == 0) return write_itype_mem();
+    else if (strcmp(name, "lbu") == 0) return write_itype_mem();
+    else if (strcmp(name, "lw") == 0) return write_itype_mem();
+    else if (strcmp(name, "sb") == 0) return write_itype_mem();
+    else if (strcmp(name, "sw") == 0) return write_itype_mem();
+    else if (strcmp(name, "beq") == 0) return write_itype_branch();
+    else if (strcmp(name, "bne") == 0) return write_itype_branch();
+
+    else if (strcmp(name, "jr") == 0) return 
     /* YOUR CODE HERE */
     else                                 return -1;
 }
 
+int write_itype(uint8_t opcode, FILE* output, char** args, size_t num_args) {
+    // opcode rs rt imm
+    if (num_args != 3) {
+        return -1;
+    }
+    long int imm;
+    int rt = translate_reg(args[0]);
+    int rs = translate_reg(args[1]);
+    long int two_pow_16 = pow(2, 16);
+    int err = translate_num(args[2], imm, -two_pow_16, two_pow_16);
+    if (err == -1) {
+        return -1;
+    }
+
+    uint32_t instruction = 0;
+    int bit = 0;
+    for (bit = 0; bit < 16; ++bit) {
+       instruction += ((imm >> 1) & 1) * pow(2, bit);
+    }
+    for (bit = 16; bit < 21; ++bit) {
+       instruction += ((rt >> 1) & 1) * pow(2,bit);
+    }
+    for (bit = 21; bit < 26; ++bit) {
+       instruction += ((rs >> 1) & 1) * pow(2,bit);
+    }
+    for (bit = 26; bit < 32; ++bit) {
+       instruction += ((opcode >> 1) & 1) * pow(2,bit);
+    }
+    
+
+    write_inst_hex(output, instruction);
+    return 0;
+}
+
+int write_itype_mem(uint8_t opcode, FILE* output, char** args, size_t num_args) {
+
+}
+
+int write_itype_big(uint8_t opcode, FILE* output, char** args, size_t num_args) {
+    
+}
 /* A helper function for writing most R-type instructions. You should use
    translate_reg() to parse registers and write_inst_hex() to write to 
    OUTPUT. Both are defined in translate_utils.h.
@@ -90,13 +143,37 @@ int translate_inst(FILE* output, const char* name, char** args, size_t num_args,
    find bitwise operations to be the cleanest way to complete this function.
  */
 int write_rtype(uint8_t funct, FILE* output, char** args, size_t num_args) {
+    // opcode rs rt rd shamt funct
     // Perhaps perform some error checking?
+    if (num_args != 3) {
+      return -1;
+    }
+
 
     int rd = translate_reg(args[0]);
     int rs = translate_reg(args[1]);
     int rt = translate_reg(args[2]);
+    if (rd < 0 || rd > 31 || rs < 0 || rs > 31 || rt < 0 || rt > 31) {
+      return -1;
+    }
+
 
     uint32_t instruction = 0;
+    int bit = 0;
+    for (bit = 0; bit < 6; ++bit) {
+       instruction += ((funct >> 1) & 1) * pow(2, bit);
+    }
+    for (bit = 11; bit < 16; ++bit) {
+       instruction += ((rd >> 1) & 1) * pow(2,bit);
+    }
+    for (bit = 16; bit < 21; ++bit) {
+       instruction += ((rt >> 1) & 1) * pow(2,bit);
+    }
+    for (bit = 21; bit < 26; ++bit) {
+       instruction += ((rs >> 1) & 1) * pow(2,bit);
+    }
+    
+
     write_inst_hex(output, instruction);
     return 0;
 }
@@ -109,14 +186,34 @@ int write_rtype(uint8_t funct, FILE* output, char** args, size_t num_args) {
    find bitwise operations to be the cleanest way to complete this function.
  */
 int write_shift(uint8_t funct, FILE* output, char** args, size_t num_args) {
-	// Perhaps perform some error checking?
+  	// Perhaps perform some error checking?
+   // opcode rs rt rd shamt funct
 
+    if (num_args != 3) {
+      return -1;
+    }
     long int shamt;
     int rd = translate_reg(args[0]);
     int rt = translate_reg(args[1]);
     int err = translate_num(&shamt, args[2], 0, 31);
-
+    if (err == -1) {
+      return -1;
+    }
+    if (rd < 0 || rd > 31 || rt < 0 || rt > 31) {
+      return -1;
+    }
     uint32_t instruction = 0;
+    int bit = 0;
+    for (bit = 6; bit < 11; ++bit) {
+       instruction += ((shamt >> 1) & 1) * pow(2, bit);
+    }
+    for (bit = 11; bit < 16; ++bit) {
+       instruction += ((rd >> 1) & 1) * pow(2,bit);
+    }
+    for (bit = 16; bit < 21; ++bit) {
+       instruction += ((rt >> 1) & 1) * pow(2,bit);
+    }
+   
     write_inst_hex(output, instruction);
     return 0;
 }
