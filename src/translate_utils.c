@@ -54,7 +54,24 @@ int is_valid_label(const char* str) {
    error occurred.
  */
  
+       /*The string may begin with an arbitrary amount of white space (as
+       determined by isspace(3)) followed by a single optional '+' or
+       '-' sign.  If base is zero or 16, the string may then include a
+       "0x" or "0X" prefix, and the number will be read in base 16;
+       otherwise, a zero base is taken as 10 (decimal) unless the next
+       character is '0', in which case it is taken as 8 (octal).
 
+       The remainder of the string is converted to a long value in the
+       obvious manner, stopping at the first character which is not a
+       valid digit in the given base.  (In bases above 10, the letter
+       'A' in either uppercase or lowercase represents 10, 'B'
+       represents 11, and so forth, with 'Z' representing 35.)
+
+       If endptr is not NULL, strtol() stores the address of the first
+       invalid character in *endptr.  If there were no digits at all,
+       strtol() stores the original value of nptr in *endptr (and
+       returns 0).  In particular, if *nptr is not '\0' but **endptr is
+       '\0' on return, the entire string is valid.*/
 int translate_num(long int* output, const char* str, long int lower_bound, 
     long int upper_bound) {
     if (!str || !output) {
@@ -62,50 +79,19 @@ int translate_num(long int* output, const char* str, long int lower_bound,
     }
     /* YOUR CODE HERE */
     auto clen = strlen(str);
-
-    long int res = strol(str, NULL, 0);
+    const char* endp;
+    long int res = strol(str, endp, 0);
     if (lower_bound > res || res > upper_bound) {
       return -1;
     }
     if (res == 0) {
-     // if (lower_bound <= 0) {
-      if (clen == 1) {
-        if (str[0] == '0') {
-          *output = 0;
-          return 0;
-        } else {
-          return -1;
+        if (strcmp(str, endp) == 0) {
+            return -1;
         }
-      }
-      if (clen == 2) {
-        if (((str[0] == '+' || str[0] == '-') && str[1] == '0') || (str[0] == '0' && str[1] == '0')) {
-          *output = 0;
-          return 0;
-        } else {
-          return -1;
-        }
-      }
-      if (clen == 3) {
-        if (((str[0] == '+' || str[0] == '-') && (str[1] == '0' && str[2] == '0')) || 
-          (str[0] == '0' && (str[1] == 'x' || str[1] == 'X') && (str[2] == '0'))) {
-          *output = 0;
-          return 0;
-        } else {
-          return -1;
-        }
-      }
-      if (clen == 4) {
-        if ((str[0] == '+' || str[0] == '-') && (str[1] == '0' && (str[2] == 'X' || str[2] == 'x') && str[3] == '0')) {
-          *output = 0;
-          return 0;
-        } else {
-          return -1;
-        }
-      }
-      return -1;
+    }
 
     
-  }
+  
   
   *output = res;
    return 0;
